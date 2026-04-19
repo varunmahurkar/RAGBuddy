@@ -1,0 +1,50 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Environment (secrets) ─────────────────────────────────────────────────────
+.env
+backend/.env
+# .env.example is intentionally NOT ignored — it's a safe template
+
+# ── Database (runtime files) ──────────────────────────────────────────────────
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.db-journal
+
+# ── Runtime data directories ──────────────────────────────────────────────────
+backend/data/uploads/
+backend/data/kb/
+# Keep the data dir skeleton (gitkeep files track empty dirs)
+!backend/data/.gitkeep
+!backend/data/uploads/.gitkeep
+!backend/data/kb/.gitkeep
+
+# ── KB storage (generated at runtime) ────────────────────────────────────────
+kb_storage/*
+!kb_storage/.gitkeep
+
+# ── Screenshots (Puppeteer output, generated at runtime) ──────────────────────
+screenshots/
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
