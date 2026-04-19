@@ -1,0 +1,75 @@
+{% if not records %}
+<div style="text-align:center;padding:52px 20px;border:1.5px dashed #1a1a1c;border-radius:14px;background:#09090b;">
+  <div style="width:40px;height:40px;border-radius:11px;background:#0e0e10;border:1px solid #1e1e22;display:flex;align-items:center;justify-content:center;margin:0 auto 11px;">
+    <svg width="16" height="16" fill="none" stroke="#2e2e32" viewBox="0 0 24 24" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+  </div>
+  <p style="font-size:13px;color:#333336;font-weight:500;">No ingestions yet</p>
+  <p style="font-size:12px;color:#222224;margin-top:4px;">Upload and ingest documents to see them here</p>
+</div>
+{% else %}
+<div style="display:flex;flex-direction:column;gap:5px;">
+  {% for r in records %}
+  <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#0e0e10;border:1px solid #1e1e22;border-radius:11px;transition:border-color 0.15s;"
+       onmouseover="this.style.borderColor='#2a2a2e'" onmouseout="this.style.borderColor='#1e1e22'">
+
+    <!-- Status icon -->
+    <div style="flex-shrink:0;margin-top:1px;">
+      {% if r.status == 'completed' %}
+      <div style="width:28px;height:28px;border-radius:7px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.18);display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" fill="none" stroke="#34d399" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      {% elif r.status == 'failed' %}
+      <div style="width:28px;height:28px;border-radius:7px;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.18);display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" fill="none" stroke="#f87171" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </div>
+      {% elif r.status == 'processing' %}
+      <div style="width:28px;height:28px;border-radius:7px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.18);display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;">
+          <circle cx="12" cy="12" r="10" stroke="rgba(99,102,241,0.2)" stroke-width="3"/>
+          <path fill="#818cf8" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </div>
+      {% else %}
+      <div style="width:28px;height:28px;border-radius:7px;background:#111113;border:1px solid #1e1e22;display:flex;align-items:center;justify-content:center;">
+        <svg width="13" height="13" fill="none" stroke="#2e2e32" viewBox="0 0 24 24" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Info -->
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:500;color:#d0d0d4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;letter-spacing:-0.01em;">{{ r.source_name }}</div>
+      <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+        <span style="font-size:11px;font-weight:600;text-transform:capitalize;letter-spacing:0.01em;
+          {% if r.status == 'completed' %}color:#34d399;
+          {% elif r.status == 'failed' %}color:#f87171;
+          {% elif r.status == 'processing' %}color:#818cf8;
+          {% else %}color:#2e2e32;{% endif %}">{{ r.status }}</span>
+        {% if r.created_at %}
+        <span style="font-size:11px;color:#242428;">{{ r.created_at.strftime('%b %d, %Y · %H:%M') }}</span>
+        {% endif %}
+        {% if r.articles_created %}
+        <span style="font-size:10.5px;color:#333336;background:#111113;border:1px solid #1a1a1c;padding:2px 8px;border-radius:5px;">
+          {{ r.articles_created }} article{% if r.articles_created != 1 %}s{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      {% if r.error_message %}
+      <div style="font-size:11px;color:rgba(248,113,113,0.55);margin-top:5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">{{ r.error_message }}</div>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<style>@keyframes spin { to { transform: rotate(360deg); } }</style>

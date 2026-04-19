@@ -1,0 +1,266 @@
+<div x-data="ragChat()" x-init="init()" style="position:relative;flex:1;overflow:hidden;min-height:0;background:#060608;">
+
+  <!-- ══ HERO — empty state ════════════════════════════════════════════════ -->
+  <div x-show="!asked" x-cloak class="chat-hero" style="padding:40px 24px;position:absolute;inset:0;overflow:hidden;">
+
+    <!-- Background glow -->
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 45% at 50% 40%,rgba(99,102,241,0.07) 0%,transparent 70%);pointer-events:none;"></div>
+    <div style="position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(99,102,241,0.04) 0%,transparent 70%);pointer-events:none;filter:blur(40px);"></div>
+
+    <div class="fade-up" style="width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;position:relative;">
+
+      <!-- Brand mark -->
+      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 0 1px rgba(99,102,241,0.3),0 8px 32px rgba(99,102,241,0.3);">
+        <svg width="26" height="26" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+
+      <h1 style="font-size:26px;font-weight:680;color:#f5f5f5;letter-spacing:-0.04em;margin-bottom:8px;text-align:center;line-height:1.2;">Ask your knowledge base</h1>
+      <p style="font-size:14px;color:#4a4a4e;margin-bottom:36px;text-align:center;max-width:400px;line-height:1.65;">Upload documents, then get AI-grounded answers with source citations from your own content.</p>
+
+      <!-- Input -->
+      <form @submit.prevent="ask()" style="width:100%;position:relative;">
+        <div style="background:#0e0e10;border-radius:14px;overflow:hidden;transition:border-color 0.2s,box-shadow 0.2s;"
+             :style="focused ? 'border:1px solid #4f46e5;box-shadow:0 0 0 4px rgba(79,70,229,0.1);' : 'border:1px solid #222224;'">
+          <textarea
+            x-model="question"
+            @focus="focused=true" @blur="focused=false"
+            @keydown.enter.prevent="if(!$event.shiftKey) ask()"
+            rows="3"
+            placeholder="What would you like to know?"
+            style="width:100%;background:transparent;border:none;outline:none;padding:16px 18px 10px;color:#e2e2e2;font-size:14px;resize:none;font-family:inherit;letter-spacing:-0.01em;line-height:1.65;"
+          ></textarea>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 12px;">
+            <span style="font-size:11px;color:#2e2e32;font-weight:500;">Enter to send &middot; Shift+Enter for new line</span>
+            <button type="submit" :disabled="loading || !question.trim()"
+              style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:none;transition:all 0.15s;"
+              :style="question.trim() && !loading ? 'background:#4f46e5;cursor:pointer;box-shadow:0 2px 8px rgba(79,70,229,0.4);' : 'background:#161618;cursor:not-allowed;opacity:0.35;'">
+              <svg x-show="!loading" width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+              </svg>
+              <svg x-show="loading" width="13" height="13" fill="none" viewBox="0 0 24 24" style="animation:spin 0.8s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                <path d="M4 12a8 8 0 018-8" stroke="white" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Example prompts -->
+      <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:20px;">
+        <template x-for="q in examples" :key="q">
+          <button @click="question=q; ask()"
+            style="font-size:12px;padding:6px 13px;border-radius:20px;border:1px solid #1e1e22;color:#525256;background:#0e0e10;cursor:pointer;transition:all 0.15s;font-family:inherit;letter-spacing:-0.01em;"
+            onmouseover="this.style.borderColor='rgba(99,102,241,0.4)';this.style.color='#a5b4fc';this.style.background='rgba(99,102,241,0.07)';"
+            onmouseout="this.style.borderColor='#1e1e22';this.style.color='#525256';this.style.background='#0e0e10';"
+            x-text="q"></button>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ RESULTS — after question ══════════════════════════════════════════ -->
+  <div x-show="asked" x-cloak class="chat-results fade-up">
+
+    <!-- Query bar -->
+    <div style="background:#09090b;border-bottom:1px solid #141416;padding:12px 20px;flex-shrink:0;">
+      <form @submit.prevent="ask()" style="display:flex;gap:8px;align-items:center;max-width:860px;margin:0 auto;">
+        <input
+          x-model="question"
+          @keydown.enter.prevent="ask()"
+          type="text"
+          placeholder="Ask a follow-up question…"
+          class="input"
+          style="flex:1;padding:9px 14px;font-size:13.5px;"
+        >
+        <button type="submit" :disabled="loading||!question.trim()" class="btn btn-primary" style="padding:9px 16px;flex-shrink:0;"
+          :style="loading||!question.trim() ? 'opacity:0.35;cursor:not-allowed;' : ''">
+          <svg x-show="!loading" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+          </svg>
+          <svg x-show="loading" width="13" height="13" fill="none" viewBox="0 0 24 24" style="animation:spin 0.8s linear infinite;">
+            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.15)" stroke-width="3"/>
+            <path d="M4 12a8 8 0 018-8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span x-text="loading ? 'Thinking…' : 'Ask'"></span>
+        </button>
+        <button @click="reset()" type="button" class="btn btn-ghost" style="flex-shrink:0;padding:9px 14px;">New chat</button>
+      </form>
+
+      <!-- Status -->
+      <div x-show="status" x-cloak style="display:flex;align-items:center;gap:8px;margin-top:8px;max-width:860px;margin-left:auto;margin-right:auto;padding-left:2px;">
+        <div style="display:flex;gap:3px;align-items:center;">
+          <span style="width:4px;height:4px;border-radius:50%;background:#6366f1;display:block;animation:bounce 1.1s 0ms ease-in-out infinite;"></span>
+          <span style="width:4px;height:4px;border-radius:50%;background:#6366f1;display:block;animation:bounce 1.1s 150ms ease-in-out infinite;"></span>
+          <span style="width:4px;height:4px;border-radius:50%;background:#6366f1;display:block;animation:bounce 1.1s 300ms ease-in-out infinite;"></span>
+        </div>
+        <span style="font-size:12px;color:#4a4a4e;" x-text="status"></span>
+      </div>
+    </div>
+
+    <!-- 3-column body -->
+    <div style="flex:1;overflow:hidden;display:flex;min-height:0;">
+
+      <!-- Sources panel -->
+      <div style="width:230px;flex-shrink:0;border-right:1px solid #141416;overflow-y:auto;padding:16px 12px;background:#09090b;">
+        <div style="font-size:9.5px;font-weight:600;color:#333336;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;padding:0 2px;">Sources</div>
+        <div x-show="loading && articles.length===0" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="skeleton" style="height:70px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:70px;border-radius:10px;opacity:0.7;"></div>
+        </div>
+        <div x-show="!loading && articles.length===0" style="font-size:12px;color:#333336;font-style:italic;padding:4px 2px;">No sources retrieved</div>
+        <template x-for="(a,i) in articles" :key="a.path">
+          <div @click="openArticle(a.path)"
+            style="margin-bottom:8px;padding:10px 11px;border-radius:10px;background:#0e0e10;border:1px solid #1e1e22;cursor:pointer;transition:all 0.15s;"
+            onmouseover="this.style.borderColor='#2a2a2e';this.style.background='#111113';"
+            onmouseout="this.style.borderColor='#1e1e22';this.style.background='#0e0e10';">
+            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              <div style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#6366f1,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;flex-shrink:0;margin-top:1px;" x-text="i+1"></div>
+              <div style="font-size:11.5px;font-weight:500;color:#c8c8c8;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;" x-text="a.path.split('/').pop().replace('.md','').replace(/_/g,' ')"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:7px;">
+              <div style="flex:1;height:2px;border-radius:2px;background:#1a1a1c;overflow:hidden;">
+                <div style="height:100%;background:linear-gradient(to right,#6366f1,#7c3aed);border-radius:2px;transition:width 0.5s ease;" :style="`width:${Math.round(a.score*100)}%`"></div>
+              </div>
+              <span style="font-size:10px;color:#3e3e42;flex-shrink:0;font-weight:500;" x-text="`${Math.round(a.score*100)}%`"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Answer panel -->
+      <div style="flex:1;overflow-y:auto;padding:28px 36px;min-width:0;">
+        <div x-show="loading && !rawAnswer">
+          <div class="skeleton" style="height:13px;width:72%;margin-bottom:14px;"></div>
+          <div class="skeleton" style="height:13px;width:90%;margin-bottom:11px;"></div>
+          <div class="skeleton" style="height:13px;width:83%;margin-bottom:11px;"></div>
+          <div class="skeleton" style="height:13px;width:68%;margin-bottom:22px;"></div>
+          <div class="skeleton" style="height:13px;width:50%;margin-bottom:11px;"></div>
+          <div class="skeleton" style="height:13px;width:78%;"></div>
+        </div>
+        <div class="prose"
+             :class="loading && rawAnswer ? 'typing-cursor' : ''"
+             x-html="renderedAnswer || ''"></div>
+      </div>
+
+      <!-- Suggestions panel -->
+      <div style="width:240px;flex-shrink:0;border-left:1px solid #141416;overflow-y:auto;padding:16px 12px;background:#09090b;">
+        <div style="font-size:9.5px;font-weight:600;color:#333336;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;padding:0 2px;">KB Suggestions</div>
+        <div x-show="!loading && suggestions.length===0" style="font-size:12px;color:#333336;font-style:italic;padding:4px 2px;">Awaiting answer…</div>
+        <template x-for="s in suggestions" :key="s.description">
+          <div style="margin-bottom:7px;padding:10px 11px;border-radius:10px;border:1px solid;transition:all 0.15s;"
+               :style="priorityCard(s.priority)">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+              <span style="font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:4px;letter-spacing:0.04em;"
+                    :style="priorityBadge(s.priority)" x-text="s.priority"></span>
+            </div>
+            <p style="font-size:12px;line-height:1.55;margin:0;" :style="priorityText(s.priority)" x-text="s.description"></p>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .chat-hero    { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .chat-results { display:flex; flex-direction:column; position:absolute; inset:0; overflow:hidden; }
+  @keyframes spin   { to { transform: rotate(360deg); } }
+  @keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
+</style>
+
+<script>
+function ragChat() {
+  return {
+    question: '', rawAnswer: '', renderedAnswer: '',
+    articles: [], suggestions: [], status: '',
+    loading: false, asked: false, focused: false,
+    examples: [
+      'Summarize the key topics in my documents',
+      'What are the main concepts explained?',
+      'Compare the different approaches described',
+    ],
+
+    init() {
+      marked.setOptions({ breaks: true, gfm: true });
+    },
+
+    async ask() {
+      const q = this.question.trim();
+      if (!q || this.loading) return;
+      this.loading = true; this.asked = true;
+      this.rawAnswer = ''; this.renderedAnswer = '';
+      this.articles = []; this.suggestions = [];
+      this.status = 'Searching knowledge base…';
+
+      try {
+        const resp = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const reader = resp.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          const parts = buf.split('\n\n'); buf = parts.pop() ?? '';
+          for (const msg of parts) {
+            for (const line of msg.split('\n')) {
+              if (!line.startsWith('data: ')) continue;
+              const raw = line.slice(6).trim();
+              if (raw === '[DONE]') continue;
+              try {
+                const ev = JSON.parse(raw);
+                if (ev.type === 'status')      this.status = ev.message;
+                if (ev.type === 'articles')    this.articles = ev.data;
+                if (ev.type === 'token') {
+                  this.rawAnswer += ev.text;
+                  this.renderedAnswer = marked.parse(this.rawAnswer);
+                }
+                if (ev.type === 'suggestions') this.suggestions = ev.data;
+                if (ev.type === 'done')        { this.loading = false; this.status = ''; }
+              } catch(_) {}
+            }
+          }
+        }
+      } catch(err) {
+        this.rawAnswer += '\n\n*Error: ' + err.message + '*';
+        this.renderedAnswer = marked.parse(this.rawAnswer);
+      } finally { this.loading = false; this.status = ''; }
+    },
+
+    reset() {
+      this.question = ''; this.rawAnswer = ''; this.renderedAnswer = '';
+      this.articles = []; this.suggestions = []; this.status = '';
+      this.loading = false; this.asked = false;
+    },
+
+    openArticle(path) {
+      htmx.ajax('GET', '/kb?article=' + encodeURIComponent(path), {
+        target: '#content', swap: 'innerHTML', pushURL: '/kb'
+      });
+      window.dispatchEvent(new CustomEvent('nav-change', { detail: { page: 'kb' } }));
+    },
+
+    priorityCard(p) {
+      return { high: 'background:#110a0a;border-color:#3f0f0f;', medium: 'background:#110e06;border-color:#3d2800;', low: 'background:#060b12;border-color:#0f1e30;' }[p] || 'background:#0e0e10;border-color:#1e1e22;';
+    },
+    priorityBadge(p) {
+      return { high: 'background:rgba(239,68,68,0.12);color:#f87171;', medium: 'background:rgba(245,158,11,0.12);color:#fbbf24;', low: 'background:rgba(59,130,246,0.12);color:#93c5fd;' }[p] || 'background:#1e1e22;color:#636363;';
+    },
+    priorityText(p) {
+      return { high: 'color:#a87070;', medium: 'color:#a89060;', low: 'color:#607aaa;' }[p] || 'color:#888;';
+    },
+  };
+}
+</script>

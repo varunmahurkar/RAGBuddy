@@ -1,0 +1,44 @@
+{% if not articles %}
+<div style="padding:40px 16px;text-align:center;">
+  <div style="width:40px;height:40px;border-radius:11px;background:#0e0e10;border:1px solid #1e1e22;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;">
+    <svg width="16" height="16" fill="none" stroke="#2e2e32" viewBox="0 0 24 24" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+  </div>
+  <p style="font-size:12.5px;color:#333336;font-weight:500;">
+    {% if search %}No results for "{{ search }}"
+    {% elif category %}No articles in {{ category }}
+    {% else %}No articles yet — ingest documents first{% endif %}
+  </p>
+</div>
+{% else %}
+<div style="padding:8px;">
+  {% for a in articles %}
+  <a href="#"
+     hx-get="/ui/kb/article/{{ a.relative_path }}"
+     hx-target="#article-detail"
+     hx-swap="innerHTML"
+     style="display:block;padding:10px 11px;border-radius:9px;text-decoration:none;transition:background 0.12s;margin-bottom:2px;cursor:pointer;"
+     onmouseover="this.style.background='rgba(255,255,255,0.03)';"
+     onmouseout="this.style.background='transparent';">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:3px;">
+      <span style="font-size:12.5px;font-weight:500;color:#c8c8cc;line-height:1.4;letter-spacing:-0.01em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;">{{ a.title }}</span>
+      {% if a.version and a.version > 1 %}
+      <span style="font-size:9px;color:#2e2e32;background:#111113;border:1px solid #1e1e22;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-top:1px;font-weight:500;">v{{ a.version }}</span>
+      {% endif %}
+    </div>
+    <div style="font-size:11px;color:#383838;margin-bottom:{% if a.snippet %}5px{% else %}0{% endif %};">{{ a.category }}</div>
+    {% if a.snippet %}
+    <div style="font-size:11.5px;color:#2e2e32;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">{{ a.snippet }}</div>
+    {% endif %}
+    {% if a.tags %}
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+      {% for tag in a.tags[:3] %}
+      <span style="font-size:9.5px;color:#2e2e32;background:#0e0e10;border:1px solid #1a1a1c;padding:2px 7px;border-radius:20px;">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

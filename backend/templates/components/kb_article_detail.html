@@ -1,0 +1,36 @@
+<div class="fade-up" style="padding-bottom:40px;">
+  <!-- Article header -->
+  <div style="margin-bottom:28px;padding-bottom:22px;border-bottom:1px solid #141416;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;">
+      <h1 style="font-size:21px;font-weight:650;color:#f0f0f0;letter-spacing:-0.03em;line-height:1.3;">{{ article.title }}</h1>
+      <span style="font-size:10px;color:#2e2e32;background:#0e0e10;border:1px solid #1e1e22;padding:4px 9px;border-radius:6px;flex-shrink:0;font-weight:500;margin-top:4px;">v{{ article.version or 1 }}</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-size:11.5px;color:#818cf8;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.18);padding:3px 11px;border-radius:20px;font-weight:500;">
+        {{ article.category }}
+      </span>
+      {% if article.updated_at %}
+      <span style="font-size:11.5px;color:#2e2e32;">Updated {{ article.updated_at.strftime('%b %d, %Y') }}</span>
+      {% endif %}
+      {% if article.sources %}
+      <span style="font-size:11.5px;color:#2e2e32;">&middot; {{ article.sources | length }} source{% if article.sources|length != 1 %}s{% endif %}</span>
+      {% endif %}
+    </div>
+
+    {% if article.tags %}
+    <div style="display:flex;flex-wrap:wrap;gap:5px;">
+      {% for tag in article.tags %}
+      <span style="font-size:11px;color:#333336;background:#0e0e10;border:1px solid #1a1a1c;padding:3px 10px;border-radius:20px;">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Article content -->
+  <div
+    x-data="{ init() { this.$el.innerHTML = (typeof marked !== 'undefined') ? marked.parse(this.$el.dataset.md) : this.$el.dataset.md; } }"
+    data-md="{{ article.content | e }}"
+    class="prose">
+  </div>
+</div>

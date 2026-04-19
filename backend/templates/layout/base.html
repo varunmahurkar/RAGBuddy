@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" style="height:100%;overflow:hidden;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGBuddy — Agentic Knowledge Base</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,650&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    [x-cloak] { display: none !important; }
+    html, body { height: 100%; overflow: hidden; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #060608;
+      color: #e2e2e2;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #333; }
+
+    /* ── Sidebar nav links ── */
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #525252;
+      transition: color 0.15s, background 0.15s;
+      cursor: pointer;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: #c8c8c8; background: rgba(255,255,255,0.035); }
+    .nav-link.active {
+      color: #c7d2fe;
+      background: rgba(99,102,241,0.12);
+    }
+    .nav-link.active::before {
+      content: '';
+      position: absolute;
+      left: -1px; top: 7px; bottom: 7px;
+      width: 2px;
+      background: linear-gradient(180deg, #818cf8, #6366f1);
+      border-radius: 0 2px 2px 0;
+    }
+    .nav-link svg { transition: opacity 0.15s; opacity: 0.55; flex-shrink: 0; }
+    .nav-link:hover svg, .nav-link.active svg { opacity: 1; }
+
+    /* ── Markdown prose ── */
+    .prose { color: #d1d1d1; font-size: 14px; line-height: 1.85; }
+    .prose h1 { font-size: 1.3em; font-weight: 650; color: #f0f0f0; margin: 1.5em 0 0.5em; border-bottom: 1px solid #1e1e1e; padding-bottom: 0.4em; letter-spacing: -0.02em; }
+    .prose h2 { font-size: 1.1em; font-weight: 600; color: #eaeaea; margin: 1.3em 0 0.4em; letter-spacing: -0.015em; }
+    .prose h3 { font-size: 1em; font-weight: 600; color: #d0d0d0; margin: 1.1em 0 0.3em; }
+    .prose p { margin: 0.75em 0; }
+    .prose ul, .prose ol { margin: 0.6em 0; padding-left: 1.5em; }
+    .prose li { margin: 0.3em 0; }
+    .prose li::marker { color: #444; }
+    .prose code { background: #161618; color: #a78bfa; padding: 0.15em 0.45em; border-radius: 5px; font-size: 0.84em; font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; border: 1px solid #252528; }
+    .prose pre { background: #0e0e10; border: 1px solid #1e1e22; border-radius: 10px; padding: 1.1em 1.3em; overflow-x: auto; margin: 1em 0; }
+    .prose pre code { background: none; padding: 0; color: #cdd6f4; font-size: 0.875em; border: none; }
+    .prose blockquote { border-left: 2px solid #4f46e5; padding-left: 1em; color: #777; margin: 1em 0; font-style: italic; background: rgba(99,102,241,0.04); border-radius: 0 6px 6px 0; padding: 0.6em 1em; }
+    .prose strong { color: #f0f0f0; font-weight: 600; }
+    .prose a { color: #818cf8; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(129,140,248,0.4); }
+    .prose a:hover { text-decoration-color: #818cf8; }
+    .prose hr { border: none; border-top: 1px solid #1e1e1e; margin: 1.5em 0; }
+    .prose table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.875em; }
+    .prose th { background: #111113; padding: 0.55em 1em; text-align: left; border: 1px solid #222224; font-weight: 600; color: #e0e0e0; }
+    .prose td { padding: 0.45em 1em; border: 1px solid #1a1a1c; }
+    .prose tr:nth-child(even) td { background: #0c0c0e; }
+
+    /* ── Typing cursor ── */
+    .typing-cursor::after { content: '▍'; animation: blink 0.9s step-end infinite; color: #6366f1; margin-left: 2px; font-size: 0.8em; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Animations ── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-up { animation: fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+    @keyframes shimmer { 0% { background-position: -600px 0; } 100% { background-position: 600px 0; } }
+    .skeleton {
+      background: linear-gradient(90deg, #111113 25%, #18181b 50%, #111113 75%);
+      background-size: 600px 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    /* ── HTMX loading ── */
+    .htmx-indicator { opacity: 0; transition: opacity 0.2s; }
+    .htmx-request .htmx-indicator { opacity: 1; }
+
+    /* ── Common components ── */
+    .card {
+      background: #0e0e10;
+      border: 1px solid #1e1e22;
+      border-radius: 12px;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: #2a2a2e; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      border: none; cursor: pointer; font-family: inherit; transition: all 0.15s;
+      letter-spacing: -0.01em;
+    }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #636363; border: 1px solid #222; }
+    .btn-ghost:hover { color: #d4d4d4; border-color: #333; background: rgba(255,255,255,0.03); }
+
+    .input {
+      background: #0e0e10; border: 1px solid #222224; border-radius: 8px;
+      color: #e2e2e2; font-size: 13.5px; font-family: inherit;
+      outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input::placeholder { color: #3e3e42; }
+    .input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+
+    /* ── Ping dot ── */
+    @keyframes ping { 0%,100% { transform:scale(1);opacity:0.6; } 60% { transform:scale(2);opacity:0; } }
+  </style>
+</head>
+
+<body style="display:flex;height:100%;overflow:hidden;">
+
+  <!-- ═══ Sidebar ═══════════════════════════════════════════════════════════ -->
+  <aside
+    x-data="{ active: '{{ active }}' }"
+    @nav-change.window="active = $event.detail.page"
+    style="width:210px;flex-shrink:0;background:#09090b;border-right:1px solid #18181b;display:flex;flex-direction:column;height:100%;">
+
+    <!-- Logo -->
+    <div style="padding:18px 14px 14px;border-bottom:1px solid #141416;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#6366f1 0%,#7c3aed 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(99,102,241,0.4);flex-shrink:0;">
+          <svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:13.5px;font-weight:650;color:#f0f0f0;letter-spacing:-0.025em;line-height:1;">RAGBuddy</div>
+          <div style="font-size:9.5px;color:#3a3a3e;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;font-weight:500;">Knowledge AI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav style="flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto;">
+
+      <div style="font-size:9.5px;color:#2e2e32;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;padding:4px 6px 8px;">Workspace</div>
+
+      <a href="/"
+         hx-get="/" hx-target="#content" hx-swap="innerHTML" hx-push-url="true"
+         @click="$dispatch('nav-change',{page:'chat'})"
+         :class="active==='chat' ? 'nav-link active' : 'nav-link'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        Chat
+      </a>
+
+      <a href="/upload"
+         hx-get="/upload" hx-target="#content" hx-swap="innerHTML" hx-push-url="true"
+         @click="$dispatch('nav-change',{page:'upload'})"
+         :class="active==='upload' ? 'nav-link active' : 'nav-link'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+        Upload
+      </a>
+
+      <a href="/kb"
+         hx-get="/kb" hx-target="#content" hx-swap="innerHTML" hx-push-url="true"
+         @click="$dispatch('nav-change',{page:'kb'})"
+         :class="active==='kb' ? 'nav-link active' : 'nav-link'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        Knowledge Base
+      </a>
+
+      <a href="/history"
+         hx-get="/history" hx-target="#content" hx-swap="innerHTML" hx-push-url="true"
+         @click="$dispatch('nav-change',{page:'history'})"
+         :class="active==='history' ? 'nav-link active' : 'nav-link'">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        History
+      </a>
+
+    </nav>
+
+    <!-- System status -->
+    <div style="padding:10px 12px;border-top:1px solid #141416;">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;background:#0e0e10;border:1px solid #18181b;">
+        <span style="position:relative;display:flex;width:6px;height:6px;flex-shrink:0;">
+          <span style="position:absolute;inset:0;border-radius:50%;background:#22c55e;animation:ping 2s ease-in-out infinite;"></span>
+          <span style="position:relative;width:6px;height:6px;border-radius:50%;background:#22c55e;display:block;"></span>
+        </span>
+        <span style="font-size:11.5px;color:#3a3a3e;font-weight:500;letter-spacing:-0.01em;">System online</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ═══ Main Content ══════════════════════════════════════════════════════ -->
+  <main style="flex:1;overflow:hidden;min-width:0;display:flex;flex-direction:column;">
+    <div id="content" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0;">
+      {% if include_partial %}{% include include_partial %}{% endif %}
+    </div>
+  </main>
+
+</body>
+</html>
